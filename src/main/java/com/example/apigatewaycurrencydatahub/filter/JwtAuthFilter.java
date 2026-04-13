@@ -33,13 +33,20 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             return exchange.getResponse().setComplete();
         }
 
-        // 🔥 validar contra auth-service
+        // 🔥 Modifica esta parte de tu JwtAuthFilter
         return webClient.post()
                 .uri("/auth/validate")
                 .header("Authorization", authHeader)
                 .retrieve()
-                .toBodilessEntity()
-                .flatMap(response -> chain.filter(exchange))
+                .bodyToMono(String.class) // ⬅️ Cambiamos a String para recibir el nombre del usuario
+                .flatMap(username -> {
+                    // Creamos una "copia" de la petición pero con el nuevo header
+                    ServerWebExchange modifiedExchange = exchange.mutate()
+                            .request(r -> r.header("X-User-Name", username))
+                            .build();
+
+                    return chain.filter(modifiedExchange);
+                })
                 .onErrorResume(e -> {
                     exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                     return exchange.getResponse().setComplete();
