@@ -36,6 +36,8 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
     // Swagger para Spring WebFlux (Gateway)
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.3.0'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
 }
 
 dependencyManagement {

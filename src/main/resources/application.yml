@@ -5,6 +5,11 @@ spring:
   application:
     name: api-gateway
 
+  # 🔥 CONFIGURACIÓN DE REDIS (RAILWAY)
+  data:
+    redis:
+      url: redis://default:lGZOxJdQZZuXXCjUGMrnNgDQdApUEDnQ@tramway.proxy.rlwy.net:49800
+
   cloud:
     gateway:
       routes:
