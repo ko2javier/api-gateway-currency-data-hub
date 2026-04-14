@@ -8,6 +8,7 @@ spring:
   cloud:
     gateway:
       routes:
+        # --- RUTAS DE NEGOCIO ---
         - id: weather-service
           uri: http://localhost:5000
           predicates:
@@ -22,3 +23,31 @@ spring:
           uri: http://localhost:4000
           predicates:
             - Path=/auth/**
+
+        # --- RUTAS PARA ROBAR LA DOCUMENTACIÓN (SWAGGER) ---
+        - id: openapi-apis
+          uri: http://localhost:5000
+          predicates:
+            - Path=/v3/api-docs/apis
+          filters:
+            - RewritePath=/v3/api-docs/apis, /v3/api-docs
+
+        - id: openapi-auth
+          uri: http://localhost:4000
+          predicates:
+            - Path=/v3/api-docs/auth
+          filters:
+            - RewritePath=/v3/api-docs/auth, /v3/api-docs
+
+# 🔥 CONFIGURACIÓN DEL SWAGGER CENTRAL 🔥
+springdoc:
+  swagger-ui:
+    urls:
+      - name: API Service (Weather & Currency)
+        url: /v3/api-docs/apis
+      - name: Auth Service
+        url: /v3/api-docs/auth
+
+# 🔥 "ESCÁNER" LOCAL DEL GATEWAY (Validación de tokens)
+jwt:
+  secret: my-super-secret-key-12345678901234567890
