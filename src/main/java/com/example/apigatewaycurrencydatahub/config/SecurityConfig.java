@@ -18,7 +18,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:4200",
+                "http://localhost:7000",
+                "https://ko2-platform-frontend.vercel.app",
+                "https://hub.ko2-oreilly.com",
+                "https://*.ko2-oreilly.com",
+                "https://167.235.77.17:7000",
+                "http://167.235.77.17:7000"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -35,7 +43,13 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/webjars/**", "/swagger-ui.html").permitAll()
+                        .pathMatchers(
+                                "/auth/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/webjars/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         .anyExchange().permitAll()
                 )
                 .build();
