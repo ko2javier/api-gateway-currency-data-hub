@@ -1,0 +1,23 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 167.235.77.17
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            cd ~/server-infrastructure/portfolio-backend/api-gateway-currency-data-hub
+            git pull
+            cd ..
+            docker-compose up --build -d gateway
