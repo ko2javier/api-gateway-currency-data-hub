@@ -20,4 +20,5 @@ jobs:
             cd ~/server-infrastructure/portfolio-backend/api-gateway-currency-data-hub
             git pull
             cd ..
+            docker-compose rm -f gateway
             docker-compose up --build -d gateway
