@@ -39,7 +39,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         String path = exchange.getRequest().getURI().getPath();
 
         // 🔓 1. Rutas públicas
-        if (path.startsWith("/auth") || path.contains("/v3/api-docs") ||
+        if (path.startsWith("/auth") || path.startsWith("/actuator") ||
+                path.contains("/v3/api-docs") ||
                 path.contains("/webjars") || path.contains("/swagger-ui")) {
             return chain.filter(exchange);
         }
