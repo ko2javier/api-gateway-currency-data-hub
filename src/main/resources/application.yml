@@ -53,6 +53,13 @@ spring:
           filters:
             - RewritePath=/v3/api-docs/auth, /v3/api-docs
 
+        - id: openapi-events
+          uri: http://ko2-kafka-events:6000
+          predicates:
+            - Path=/v3/api-docs/events
+          filters:
+            - RewritePath=/v3/api-docs/events, /v3/api-docs
+
 springdoc:
   swagger-ui:
     urls:
@@ -60,6 +67,8 @@ springdoc:
         url: /v3/api-docs/apis
       - name: Auth Service
         url: /v3/api-docs/auth
+      - name: Kafka Events Service
+        url: /v3/api-docs/events
 
 jwt:
   secret: ${JWT_SECRET}
