@@ -27,6 +27,13 @@ spring:
           predicates:
             - Path=/auth/**
 
+        - id: kafka-events-swagger
+          uri: http://ko2-kafka-events:6000
+          predicates:
+            - Path=/events/swagger-ui/**,/events/swagger-ui.html,/events/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+
         - id: events-service
           uri: http://ko2-kafka-events:6000
           predicates:
