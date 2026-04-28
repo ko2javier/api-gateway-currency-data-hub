@@ -27,6 +27,11 @@ spring:
           predicates:
             - Path=/auth/**
 
+        - id: events-service
+          uri: http://ko2-kafka-events:6000
+          predicates:
+            - Path=/events/**
+
         - id: openapi-apis
           uri: ${API_SERVICE_URL}
           predicates:
