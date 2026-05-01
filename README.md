@@ -9,7 +9,7 @@
 
 Reactive API Gateway — the single entry point for the KO2 Platform. Validates JWT tokens, checks the Redis token blacklist, and routes requests to downstream services. Part of the [KO2 Platform](https://github.com/ko2javier/server-infrastructure) microservices ecosystem.
 
-**Live demo:** [hub.ko2-oreilly.com](https://hub.ko2-oreilly.com) · **Swagger:** [api.ko2-oreilly.com/swagger-ui](https://api.ko2-oreilly.com/webjars/swagger-ui/index.html)
+**Live demo:** [hub.ko2-oreilly.com](https://hub.ko2-oreilly.com) · **Swagger:** [api.ko2-oreilly.com/swagger-ui](http://167.235.77.17:7000/webjars/swagger-ui/index.html)
 
 ---
 
