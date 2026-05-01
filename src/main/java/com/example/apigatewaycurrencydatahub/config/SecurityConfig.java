@@ -24,8 +24,7 @@ public class SecurityConfig {
                 "https://ko2-platform-frontend.vercel.app",
                 "https://hub.ko2-oreilly.com",
                 "https://*.ko2-oreilly.com",
-                "https://167.235.77.17:7000",
-                "http://167.235.77.17:7000"
+                "https://hub.ko2-oreilly.com"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
