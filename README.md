@@ -46,7 +46,7 @@ Public routes (`/auth/login`) bypass the filter.
 | Gateway | Spring Cloud Gateway (reactive, non-blocking) |
 | Reactive | Project Reactor / WebFlux |
 | Token validation | JJWT + Redis blacklist check |
-| Cache | Redis (Railway) |
+| Cache | Redis 7.2 (self-hosted, same Docker network) |
 | Docs | SpringDoc OpenAPI 3 — aggregated Swagger UI |
 | Build | Gradle |
 | Deploy | Docker · Hetzner VPS · GitHub Actions CI/CD |
