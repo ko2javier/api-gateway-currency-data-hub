@@ -15,10 +15,17 @@ jobs:
           host: ${{ secrets.HETZNER_HOST }}
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
+          # Sin esto, un comando que falla no detiene el script y el paso puede
+          # acabar en verde con el despliegue a medias.
+          script_stop: true
           script: |
             cd ~/server-infrastructure/portfolio-backend/api-gateway-currency-data-hub
             git pull
             cd ..
-            docker-compose stop gateway
-            docker-compose rm -f gateway
-            docker-compose up --build -d gateway
+            # docker-compose (v1) reventaba al recrear contenedores con imagenes
+            # modernas: KeyError 'ContainerConfig'. Se usa la v2, sin guion.
+            # Construir primero: si la compilacion falla, el servicio viejo
+            # sigue en pie en vez de quedarse parado.
+            docker compose build gateway
+            # --no-deps para no tocar redis ni kafka, que no son de este repo.
+            docker compose up -d --no-deps gateway
