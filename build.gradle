@@ -30,6 +30,13 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
+    // Tests de integracion (2026-10-18). Las versiones las fija el BOM de
+    // Spring Boot, por eso no se escriben aqui.
+    //   testcontainers  -> un Redis de verdad, que es lo que no se puede simular
+    //   mockwebserver   -> el backend al que el gateway enruta
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'com.squareup.okhttp3:mockwebserver'
     // Librerías para leer JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'

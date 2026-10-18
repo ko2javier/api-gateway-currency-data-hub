@@ -59,6 +59,22 @@ Public routes (`/auth/login`) bypass the filter.
 
 **CORS restricted to explicit origins:** Only `hub.ko2-oreilly.com` (production) and `localhost:4200` (dev) are allowed. No wildcard.
 
+**A JWT blacklist that fails open:** if Redis is unreachable, the blacklist check is skipped and the request continues on signature alone — so a Redis outage silently re-validates every logged-out token until it expires. The alternative, rejecting while Redis is down, trades a security hole for a full platform outage. The behaviour is deliberate and pinned by a test that proves it (`RedisCaidoIT`), so it cannot change unnoticed.
+
+## Tests
+
+```bash
+./gradlew test            # 15 tests, ~35 s
+```
+
+They need Docker: a **real Redis** runs in a container (Testcontainers), because the token blacklist is the one thing a mock cannot prove. The suite starts the gateway on a real port and sends real HTTP through it — a Spring Cloud Gateway `GlobalFilter` only runs when routing actually happens, so a mocked environment would skip the filter under test entirely.
+
+What they pin: the 401 contract and its JSON body, a forged signature, an expired token, the two identity headers (`X-User-Name`, `X-User-Roles`) that every downstream service trusts, a blacklisted token, the public routes, and the fail-open behaviour above — asserted by stopping the Redis container mid-test.
+
+**The suite was tested against itself.** Four faults were injected one at a time — skipping the blacklist lookup, dropping the identity header, adding `/weather` to the public paths, and deleting a route from the YAML — and each one turns the suite red.
+
+CI runs them on every push to `master` **before** the server is touched: if they fail, there is no `git pull` and no rebuild on the VPS.
+
 ## Part of the KO2 Platform
 
 ```

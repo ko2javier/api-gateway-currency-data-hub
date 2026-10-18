@@ -6,7 +6,46 @@ on:
       - master
 
 jobs:
+  # Antes del 2026-10-18 no habia ningun job de tests, y el unico test del
+  # proyecto llevaba roto desde el primer dia sin que nadie lo viera: el
+  # Dockerfile construye con `gradle bootJar`, que no los ejecuta, y el
+  # despliegue solo hacia `docker compose build` por SSH.
+  #
+  # Los tests levantan un Redis en Docker (Testcontainers). El runner
+  # ubuntu-latest ya trae Docker, asi que no hay nada que instalar.
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          # Guarda las dependencias entre ejecuciones; sin esto cada push
+          # vuelve a bajar Spring entero.
+          cache: gradle
+
+      # --no-daemon: en un runner que se destruye al terminar, el demonio de
+      # Gradle no se reutiliza nunca y solo deja un proceso colgando.
+      - name: Tests
+        run: ./gradlew test --no-daemon
+
+      # El informe solo sirve cuando algo falla, pero hay que pedirlo con
+      # if: always() porque el paso anterior ya ha puesto el job en rojo.
+      - name: Informe de tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-de-tests
+          path: build/reports/tests/test
+          retention-days: 7
+
   deploy:
+    # Si los tests fallan, el VPS no se toca: ni git pull, ni build, ni
+    # reinicio del gateway.
+    needs: tests
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VPS
