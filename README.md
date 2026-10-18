@@ -49,7 +49,7 @@ Public routes (`/auth/login`) bypass the filter.
 | Cache | Redis 7.2 (self-hosted, same Docker network) |
 | Docs | SpringDoc OpenAPI 3 — aggregated Swagger UI |
 | Build | Gradle |
-| Deploy | Docker · Hetzner VPS · GitHub Actions CI/CD |
+| Deploy | GitHub Actions → ghcr.io → Hetzner VPS, pinned by commit SHA |
 
 ## Design decisions
 
@@ -73,7 +73,21 @@ What they pin: the 401 contract and its JSON body, a forged signature, an expire
 
 **The suite was tested against itself.** Four faults were injected one at a time — skipping the blacklist lookup, dropping the identity header, adding `/weather` to the public paths, and deleting a route from the YAML — and each one turns the suite red.
 
-CI runs them on every push to `master` **before** the server is touched: if they fail, there is no `git pull` and no rebuild on the VPS.
+CI runs them on every push to `master` **before** the server is touched: if they fail, nothing is built and nothing is deployed.
+
+## Deployment
+
+```
+push to master ──▶ tests          15 tests, real Redis via Testcontainers
+                     └──▶ build   image to ghcr.io, tagged `latest` and the commit SHA
+                            └──▶ deploy   SSH: pull that SHA, restart, wait for 200
+```
+
+Each stage gates the next, so a red test never reaches the registry and a failed build never reaches the server.
+
+**The image is built here, not on the VPS.** Until 18 Oct 2026 the deploy step SSH'd in and ran `gradle bootJar` on the server itself: three and a half minutes of compilation, and RAM spent on a box where RAM is the binding constraint. Worse, the `git pull` happened *before* the build, so a compilation failure left the server's checkout on the new commit with the old container still running.
+
+**Deploys pin the commit SHA, not `latest`.** The running container states which code it serves, and a rollback is the same command with the previous SHA. The deploy waits for a 200 from `/actuator/health` and fails loudly, with container logs attached, if it never arrives.
 
 ## Part of the KO2 Platform
 

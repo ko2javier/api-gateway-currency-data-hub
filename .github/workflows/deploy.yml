@@ -1,17 +1,39 @@
-name: Deploy to Hetzner
+name: Tests, push and deploy
+
+# Hasta el 2026-10-18 esto era despliegue continuo a secas: entraba por SSH,
+# hacia `git pull` y compilaba la imagen DENTRO del VPS. Dos problemas medidos
+# ese dia: el `gradle bootJar` del servidor tardaba tres minutos y medio y se
+# comia la RAM, que es el limite de esta maquina; y cuando el build fallaba, el
+# `git pull` ya se habia hecho, asi que el repo del servidor quedaba en el
+# commit nuevo con el contenedor viejo corriendo.
+#
+# Ahora la imagen se construye aqui, se publica en ghcr.io y el VPS solo se la
+# baja. Mismo patron que pharma_back_py, de donde esta copiado.
+#
+# No hay ninguna credencial nueva que crear: GITHUB_TOKEN lo genera Actions
+# para esta ejecucion y caduca al terminar el job. El VPS ya tiene su
+# `docker login ghcr.io` hecho (comprobado el 18/10), asi que puede bajar el
+# paquete aunque nazca privado.
 
 on:
   push:
     branches:
       - master
+    paths-ignore:
+      # Un cambio de documentacion no cambia la imagen: reconstruirla seria
+      # gastar minutos de Actions y una version mas en el registro para nada.
+      - '**.md'
+      - '.idea/**'
+  # Para poder relanzarlo a mano desde la pestana Actions, que es lo comodo
+  # cuando lo que falla es el despliegue y no el codigo.
+  workflow_dispatch:
+
+env:
+  # ghcr.io exige el owner en minusculas, y "ko2javier" ya lo esta.
+  IMAGEN: ghcr.io/ko2javier/api-gateway-currency-data-hub
 
 jobs:
-  # Antes del 2026-10-18 no habia ningun job de tests, y el unico test del
-  # proyecto llevaba roto desde el primer dia sin que nadie lo viera: el
-  # Dockerfile construye con `gradle bootJar`, que no los ejecuta, y el
-  # despliegue solo hacia `docker compose build` por SSH.
-  #
-  # Los tests levantan un Redis en Docker (Testcontainers). El runner
+  # Los 15 tests. Levantan un Redis en Docker (Testcontainers) y el runner
   # ubuntu-latest ya trae Docker, asi que no hay nada que instalar.
   tests:
     runs-on: ubuntu-latest
@@ -42,13 +64,66 @@ jobs:
           path: build/reports/tests/test
           retention-days: 7
 
-  deploy:
-    # Si los tests fallan, el VPS no se toca: ni git pull, ni build, ni
-    # reinicio del gateway.
+  build-and-push:
+    # Sin esto, el build correria EN PARALELO con los tests y la imagen se
+    # publicaria igual aunque salieran rojos.
     needs: tests
     runs-on: ubuntu-latest
+
+    # packages: write es lo que deja publicar en ghcr.io; contents: read, lo
+    # que deja al checkout leer el codigo.
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - name: Deploy to VPS
+      - uses: actions/checkout@v4
+
+      - name: Entrar en el registro de GitHub
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Preparar buildx
+        # Hace falta para el cache de abajo: el driver "docker" que trae el
+        # runner por defecto construye pero no sabe exportar cache, y falla
+        # con "Cache export is not supported for the docker driver".
+        uses: docker/setup-buildx-action@v3
+
+      - name: Construir la imagen y subirla
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          # Dos etiquetas para la MISMA imagen:
+          #   latest -> el respaldo, por si hay que levantar el servicio a mano
+          #   <sha>  -> la que despliega el job de abajo, para saber que codigo
+          #             corre y poder volver atras a una version concreta
+          tags: |
+            ${{ env.IMAGEN }}:latest
+            ${{ env.IMAGEN }}:${{ github.sha }}
+          # Sin esto, cada push vuelve a bajar Spring entero dentro del build.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Sin esto buildx sube ademas un certificado de procedencia y un
+          # indice, y cada construccion aparece como TRES entradas en el
+          # registro en vez de una.
+          provenance: false
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    # El gateway es la puerta de los tres servicios del Hub. Dos push seguidos
+    # no lo recrean a la vez: el segundo espera.
+    concurrency:
+      group: produccion-hub
+      cancel-in-progress: false
+
+    steps:
+      - name: Desplegar en el VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HETZNER_HOST }}
@@ -58,13 +133,36 @@ jobs:
           # acabar en verde con el despliegue a medias.
           script_stop: true
           script: |
-            cd ~/server-infrastructure/portfolio-backend/api-gateway-currency-data-hub
+            set -e
+            # El docker-compose.yml del gateway vive en server-infrastructure,
+            # compartido con los otros siete servicios. Este pull trae la
+            # version del compose que lee ${GATEWAY_TAG}; sin el, un compose
+            # viejo ignoraria la etiqueta y seguiria compilando aqui.
+            cd ~/server-infrastructure
             git pull
-            cd ..
-            # docker-compose (v1) reventaba al recrear contenedores con imagenes
-            # modernas: KeyError 'ContainerConfig'. Se usa la v2, sin guion.
-            # Construir primero: si la compilacion falla, el servicio viejo
-            # sigue en pie en vez de quedarse parado.
-            docker compose build gateway
-            # --no-deps para no tocar redis ni kafka, que no son de este repo.
+            cd portfolio-backend
+
+            # Por el SHA y no por latest: asi el contenedor dice exactamente
+            # que codigo corre, y volver atras es repetir este comando con el
+            # SHA anterior:
+            #     GATEWAY_TAG=<sha> docker compose up -d --no-deps gateway
+            export GATEWAY_TAG=${{ github.sha }}
+            docker compose pull gateway
+            # --no-deps para no tocar redis, kafka ni los otros servicios, que
+            # no son de este repo.
             docker compose up -d --no-deps gateway
+
+            # Que el contenedor arranque no significa que el gateway responda.
+            # Se espera hasta 30 s a un 200 del actuator; si no llega, el job
+            # sale ROJO con el final del log a la vista en Actions.
+            for i in $(seq 1 15); do
+              code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:7000/actuator/health || true)
+              if [ "$code" = "200" ]; then
+                echo "Desplegado: responde 200 con la imagen $GATEWAY_TAG"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "El gateway no responde 200 en 30 s tras desplegar $GATEWAY_TAG"
+            docker compose logs --tail 40 gateway
+            exit 1
