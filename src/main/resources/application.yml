@@ -94,6 +94,6 @@ management:
         include: health,prometheus
   endpoint:
     prometheus:
-      enabled: true
+      access: unrestricted
     health:
       show-details: always
