@@ -11,66 +11,68 @@ spring:
 
   cloud:
     gateway:
-      routes:
-        - id: weather-service
-          uri: ${API_SERVICE_URL}
-          predicates:
-            - Path=/weather/**
+      server:
+        webflux:
+          routes:
+            - id: weather-service
+              uri: ${API_SERVICE_URL}
+              predicates:
+                - Path=/weather/**
 
-        - id: currency-service
-          uri: ${API_SERVICE_URL}
-          predicates:
-            - Path=/currency/**
+            - id: currency-service
+              uri: ${API_SERVICE_URL}
+              predicates:
+                - Path=/currency/**
 
-        - id: auth-service
-          uri: ${AUTH_SERVICE_URL}
-          predicates:
-            - Path=/auth/**
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URL}
+              predicates:
+                - Path=/auth/**
 
-        # El Swagger propio de ko2-kafka-events no sobrevive al StripPrefix: el
-        # servicio declara swagger-ui.path=/swagger-ui/index.html y su redireccion
-        # vuelve a prefijarse, dejando /events/swagger-ui/swagger-ui/index.html.
-        # En vez de arrastrar esa ruta rota, se manda al Swagger agregado con su
-        # definicion ya seleccionada, que es donde esta tambien el login.
-        - id: kafka-events-swagger
-          uri: http://ko2-kafka-events:6000
-          predicates:
-            - Path=/events/swagger-ui/**,/events/swagger-ui.html
-          filters:
-            - RedirectTo=302, https://api.ko2-oreilly.com/webjars/swagger-ui/index.html?urls.primaryName=Kafka%20Events%20Service
+            # El Swagger propio de ko2-kafka-events no sobrevive al StripPrefix: el
+            # servicio declara swagger-ui.path=/swagger-ui/index.html y su redireccion
+            # vuelve a prefijarse, dejando /events/swagger-ui/swagger-ui/index.html.
+            # En vez de arrastrar esa ruta rota, se manda al Swagger agregado con su
+            # definicion ya seleccionada, que es donde esta tambien el login.
+            - id: kafka-events-swagger
+              uri: http://ko2-kafka-events:6000
+              predicates:
+                - Path=/events/swagger-ui/**,/events/swagger-ui.html
+              filters:
+                - RedirectTo=302, https://api.ko2-oreilly.com/webjars/swagger-ui/index.html?urls.primaryName=Kafka%20Events%20Service
 
-        - id: kafka-events-api-docs
-          uri: http://ko2-kafka-events:6000
-          predicates:
-            - Path=/events/v3/api-docs/**
-          filters:
-            - StripPrefix=1
+            - id: kafka-events-api-docs
+              uri: http://ko2-kafka-events:6000
+              predicates:
+                - Path=/events/v3/api-docs/**
+              filters:
+                - StripPrefix=1
 
-        - id: events-service
-          uri: http://ko2-kafka-events:6000
-          predicates:
-            - Path=/events/**
+            - id: events-service
+              uri: http://ko2-kafka-events:6000
+              predicates:
+                - Path=/events/**
 
-        - id: openapi-apis
-          uri: ${API_SERVICE_URL}
-          predicates:
-            - Path=/v3/api-docs/apis
-          filters:
-            - RewritePath=/v3/api-docs/apis, /v3/api-docs
+            - id: openapi-apis
+              uri: ${API_SERVICE_URL}
+              predicates:
+                - Path=/v3/api-docs/apis
+              filters:
+                - RewritePath=/v3/api-docs/apis, /v3/api-docs
 
-        - id: openapi-auth
-          uri: ${AUTH_SERVICE_URL}
-          predicates:
-            - Path=/v3/api-docs/auth
-          filters:
-            - RewritePath=/v3/api-docs/auth, /v3/api-docs
+            - id: openapi-auth
+              uri: ${AUTH_SERVICE_URL}
+              predicates:
+                - Path=/v3/api-docs/auth
+              filters:
+                - RewritePath=/v3/api-docs/auth, /v3/api-docs
 
-        - id: openapi-events
-          uri: http://ko2-kafka-events:6000
-          predicates:
-            - Path=/v3/api-docs/events
-          filters:
-            - RewritePath=/v3/api-docs/events, /v3/api-docs
+            - id: openapi-events
+              uri: http://ko2-kafka-events:6000
+              predicates:
+                - Path=/v3/api-docs/events
+              filters:
+                - RewritePath=/v3/api-docs/events, /v3/api-docs
 
 springdoc:
   swagger-ui:

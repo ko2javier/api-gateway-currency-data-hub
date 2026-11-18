@@ -1,7 +1,7 @@
 # API Gateway — KO2 Platform
 
 ![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3.5-6DB33F?logo=springboot&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.16-6DB33F?logo=springboot&logoColor=white)
 ![Spring Cloud Gateway](https://img.shields.io/badge/Spring_Cloud-Gateway-6DB33F?logo=spring)
 ![WebFlux](https://img.shields.io/badge/Reactive-WebFlux-6DB33F?logo=spring)
 ![Docker](https://img.shields.io/badge/Docker-deployed-2496ED?logo=docker&logoColor=white)
@@ -42,7 +42,7 @@ Public routes (`/auth/login`) bypass the filter.
 | | |
 |---|---|
 | Runtime | Java 21 |
-| Framework | Spring Boot 3.3.5 |
+| Framework | Spring Boot 3.5.16 |
 | Gateway | Spring Cloud Gateway (reactive, non-blocking) |
 | Reactive | Project Reactor / WebFlux |
 | Token validation | JJWT + Redis blacklist check |
